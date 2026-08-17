@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>VAX_AX 시스템 브리핑</title>
+<style>
+  :root {
+    --bg: #05070f;
+    --bg2: #0a0e1f;
+    --text: #f2f4ff;
+    --muted: #98a2c8;
+    --panel: rgba(255, 255, 255, 0.045);
+    --border: rgba(255, 255, 255, 0.09);
+    --acc1: #7c5cff;
+    --acc2: #22d3ee;
+    --accent: #7c5cff;
+    --amber: #fbbf24;
+    --pink: #f472b6;
+    --green: #34d399;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  ::selection { background: rgba(124, 92, 255, 0.45); color: #fff; }
+
+  /* ---------- Ambient background FX ---------- */
+  .bgfx { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+  .bgfx .blob { position: absolute; width: 58vmax; height: 58vmax; border-radius: 50%;
+    filter: blur(90px); opacity: .42; mix-blend-mode: screen; }
+  .b1 { background: radial-gradient(circle at 35% 35%, #7c5cff, transparent 62%);
+    top: -22vmax; left: -12vmax; animation: driftA 30s ease-in-out infinite alternate; }
+  .b2 { background: radial-gradient(circle at 60% 60%, #22d3ee, transparent 62%);
+    bottom: -26vmax; right: -14vmax; animation: driftB 36s ease-in-out infinite alternate; }
+  .b3 { background: radial-gradient(circle at 50% 50%, #f472b6, transparent 60%);
+    top: 30%; left: 55%; width: 40vmax; height: 40vmax; opacity: .22; animation: driftC 44s ease-in-out infinite alternate; }
+  @keyframes driftA { to { transform: translate(16vmax, 11vmax) scale(1.18); } }
+  @keyframes driftB { to { transform: translate(-14vmax, -9vmax) scale(1.22); } }
+  @keyframes driftC { to { transform: translate(-18vmax, 8vmax) scale(1.3) rotate(30deg); } }
+  .grain {
+    position: absolute; inset: 0; opacity: .05; mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* ---------- Progress ---------- */
+  #progress { position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: 70;
+    background: rgba(255, 255, 255, 0.05); }
+  #progressFill { display: block; height: 100%; width: 0;
+    background: linear-gradient(90deg, var(--acc1), var(--acc2));
+    box-shadow: 0 0 14px rgba(124, 92, 255, 0.7);
+    transition: width .45s cubic-bezier(.22, .9, .28, 1); }
+
+  /* ---------- Stage ---------- */
+  #stage { position: fixed; inset: 0; z-index: 1; overflow: hidden; }
+  #panner { position: absolute; inset: 0;
+    transition: transform .28s cubic-bezier(.6, 0, .3, 1);
+    will-change: transform; }
+  #slideContainer {
+    display: flex; height: 100vh;
+    width: 500vw;
+    transform-origin: 50% 50%;
+    transition: transform .55s cubic-bezier(.76, .05, .2, 1);
+    will-change: transform;
+  }
+  .slide {
+    position: relative; width: 100vw; height: 100vh; flex: 0 0 100vw;
+    display: flex; align-items: center; justify-content: center;
+    padding: clamp(32px, 7vw, 110px); overflow: hidden;
+  }
+  .slide > .inner { position: relative; z-index: 1; width: min(1180px, 94vw); }
+  .ghost {
+    position: absolute; top: -1%; right: -1%; z-index: 0; pointer-events: none; user-select: none;
+    font-family: "Space Grotesk", "Pretendard Variable", sans-serif;
+    font-size: min(32vw, 430px); font-weight: 700; line-height: 1; letter-spacing: -.06em;
+    color: transparent; -webkit-background-clip: text; background-clip: text;
+    background-image: linear-gradient(160deg, var(--accent), transparent 72%);
+    opacity: .14;
+  }
+
+  .sec-num {
+    display: inline-flex; align-items: center; gap: 14px;
+    font-family: "Space Grotesk", "Pretendard Variable", sans-serif;
+    font-size: 14px; font-weight: 700; letter-spacing: .18em;
+    color: var(--accent); text-transform: uppercase; margin-bottom: 16px;
+  }
+  .sec-num::after { content: ""; width: 64px; height: 1px;
+    background: linear-gradient(90deg, var(--accent), transparent); }
+  .ac-01 { --accent: #7c5cff; }
+  .ac-02 { --accent: #22d3ee; }
+  .ac-03 { --accent: #f59e0b; }
+  .ac-04 { --accent: #f472b6; }
+
+  .kicker {
+    display: inline-flex; align-items: center; gap: 10px;
+    font-family: "Space Grotesk", "Pretendard Variable", sans-serif;
+    font-size: 13px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase;
+    color: #d6dcff; padding: 8px 18px; border-radius: 999px; margin-bottom: 24px;
+    border: 1px solid rgba(255, 255, 255, .14);
+    background: linear-gradient(135deg, rgba(124, 92, 255, .16), rgba(34, 211, 238, .08));
+    backdrop-filter: blur(8px); box-shadow: 0 0 24px rgba(124, 92, 255, .14);
+  }
+  .kicker::before { content: ""; width: 7px; height: 7px; border-radius: 50%;
+    background: var(--acc2); box-shadow: 0 0 10px var(--acc2); animation: pulse 2.2s infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .4; transform: scale(.8); } }
+
+  h1 {
+    font-family: "Space Grotesk", "Pretendard Variable", sans-serif;
+    font-size: clamp(44px, 7.5vw, 122px); line-height: 1.04; font-weight: 700;
+    letter-spacing: -.03em;
+  }
+  h2 {
+    font-family: "Space Grotesk", "Pretendard Variable", sans-serif;
+    font-size: clamp(30px, 4.2vw, 64px); line-height: 1.14; font-weight: 700;
+    letter-spacing: -.02em; margin-bottom: 28px;
+  }
+  .grad {
+    background: linear-gradient(92deg, var(--accent), var(--acc2));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .slide-1 h1 .grad, .slide-1 h2 .grad {
+    background-image: linear-gradient(90deg, #7c5cff, #22d3ee, #f472b6, #7c5cff);
+    background-size: 300% 100%;
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    animation: shimmer 7s linear infinite;
+  }
+  @keyframes shimmer { to { background-position: 300% 0; } }
+
+  .sub { color: var(--muted); font-size: clamp(15px, 1.9vw, 21px); line-height: 1.8; margin-top: 26px; max-width: 46em; }
+  .slide-1 { text-align: center; }
+  .slide-1 .sub { margin-left: auto; margin-right: auto; }
+
+  .lead { color: var(--muted); font-size: clamp(15px, 1.8vw, 20px); line-height: 1.85; }
+  .split { display: grid; grid-template-columns: 1.02fr 1.18fr; gap: clamp(30px, 5vw, 76px); align-items: center; }
+
+  .grid { display: grid; gap: 18px; }
+  .card {
+    position: relative; overflow: hidden; border-radius: 22px; padding: 26px;
+    background: linear-gradient(160deg, rgba(255, 255, 255, .07), rgba(255, 255, 255, .015));
+    border: 1px solid var(--border); backdrop-filter: blur(10px);
+    transition: transform .35s cubic-bezier(.2, .7, .2, 1), border-color .35s, box-shadow .35s;
+  }
+  .card::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent); opacity: 0; transition: opacity .35s; }
+  .card:hover { transform: translateY(-5px); border-color: rgba(124, 92, 255, .45);
+    box-shadow: 0 22px 46px -20px rgba(124, 92, 255, .55); }
+  .card:hover::before { opacity: 1; }
+  .card .icon {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 46px; height: 46px; border-radius: 14px; margin-bottom: 16px;
+    font-family: "Space Grotesk", sans-serif; font-weight: 700; font-size: 18px; color: #0a0d1c;
+    background: linear-gradient(135deg, var(--accent), var(--acc2));
+    box-shadow: 0 6px 20px -6px var(--accent);
+  }
+  .card h3 { font-size: 18px; margin-bottom: 10px; letter-spacing: -.01em; }
+  .card p { color: var(--muted); font-size: 14.5px; line-height: 1.7; }
+
+  ul.bullets { list-style: none; }
+  ul.bullets li {
+    position: relative; padding: 14px 0 14px 34px;
+    font-size: clamp(14px, 1.7vw, 18.5px); line-height: 1.72;
+    border-bottom: 1px solid rgba(255, 255, 255, .06);
+  }
+  ul.bullets li::before {
+    content: ""; position: absolute; left: 2px; top: 26px; width: 11px; height: 11px; border-radius: 4px;
+    background: linear-gradient(135deg, var(--accent), var(--acc2));
+    box-shadow: 0 0 12px rgba(124, 92, 255, .6);
+  }
+  ul.bullets li:last-child { border-bottom: none; }
+
+  /* ---------- Entrance animations ---------- */
+  .slide.in .inner > *, .slide.in .split > * { animation: rise .8s cubic-bezier(.2, .7, .2, 1) both; }
+  .slide.in .inner > *:nth-child(1) { animation-delay: .06s; }
+  .slide.in .inner > *:nth-child(2) { animation-delay: .13s; }
+  .slide.in .inner > *:nth-child(3) { animation-delay: .20s; }
+  .slide.in .inner > *:nth-child(4) { animation-delay: .27s; }
+  .slide.in .inner > *:nth-child(5) { animation-delay: .34s; }
+  .slide.in .inner > *:nth-child(6) { animation-delay: .41s; }
+  .slide.in .inner > *:nth-child(n+7) { animation-delay: .48s; }
+  .slide.in ul.bullets li { animation: rise .55s cubic-bezier(.2, .7, .2, 1) both; }
+  .slide.in ul.bullets li:nth-child(1) { animation-delay: .14s; }
+  .slide.in ul.bullets li:nth-child(2) { animation-delay: .22s; }
+  .slide.in ul.bullets li:nth-child(3) { animation-delay: .30s; }
+  .slide.in ul.bullets li:nth-child(4) { animation-delay: .38s; }
+  .slide.in ul.bullets li:nth-child(5) { animation-delay: .46s; }
+  .slide.in ul.bullets li:nth-child(6) { animation-delay: .54s; }
+  .slide.in ul.bullets li:nth-child(n+7) { animation-delay: .62s; }
+  @keyframes rise { from { opacity: 0; transform: translateY(26px); } to { opacity: 1; transform: none; } }
+
+
+  /* ---------- Magic slide transitions ---------- */
+  .slide.out { animation: fxExit .4s cubic-bezier(.5, 0, 1, 1) both; }
+  @keyframes fxExit { to { opacity: 0; transform: scale(.94) translateY(-18px); filter: blur(8px); } }
+
+  .slide.fx-1.in { animation: fxZoom .75s cubic-bezier(.2, .7, .25, 1) both; }
+  @keyframes fxZoom { from { opacity: 0; transform: scale(1.18); filter: blur(8px); } to { opacity: 1; transform: scale(1); filter: blur(0); } }
+
+  .slide.fx-2.in { animation: fxRise .8s cubic-bezier(.2, .7, .25, 1) both; }
+  @keyframes fxRise { from { opacity: 0; transform: translateY(150px) scale(.97); } to { opacity: 1; transform: none; } }
+
+  .slide.fx-3.in { animation: fxSweep .85s cubic-bezier(.7, 0, .3, 1) both; }
+  @keyframes fxSweep { from { clip-path: inset(0 100% 0 0); transform: translateX(60px); opacity: .3; } to { clip-path: inset(0 0 0 0); transform: none; opacity: 1; } }
+
+  .slide.fx-4.in { animation: fxFlip .9s cubic-bezier(.2, .7, .25, 1) both; }
+  @keyframes fxFlip { from { opacity: 0; transform: perspective(1200px) rotateX(40deg) translateY(140px); } to { opacity: 1; transform: perspective(1200px) rotateX(0) translateY(0); } }
+
+  .slide.fx-5.in { animation: fxBlur .9s cubic-bezier(.2, .7, .25, 1) both; }
+  @keyframes fxBlur { from { opacity: 0; filter: blur(35px) saturate(.3); transform: scale(1.12); } to { opacity: 1; filter: blur(0) saturate(1); transform: scale(1); } }
+
+  .slide.fx-6.in { animation: fxPop .8s cubic-bezier(.25, 1.5, .4, 1) both; }
+  @keyframes fxPop { from { opacity: 0; transform: scale(.45); } to { opacity: 1; transform: scale(1); } }
+
+  .slide.fx-7.in { animation: fxWipe .9s cubic-bezier(.7, 0, .3, 1) both; }
+  @keyframes fxWipe { from { clip-path: circle(0% at 50% 40%); opacity: .6; } to { clip-path: circle(141% at 50% 40%); opacity: 1; } }
+
+  .slide.fx-8.in { animation: fxFade .9s cubic-bezier(.2, .7, .25, 1) both; }
+  @keyframes fxFade { from { opacity: 0; transform: translateX(-70px); } to { opacity: 1; transform: none; } }
+
+
+  #magic { position: fixed; inset: 0; z-index: 25; pointer-events: none; opacity: 0; }
+  #magic.go { animation: magicFlash .85s ease-out forwards; }
+  @keyframes magicFlash {
+    0%   { opacity: 0; transform: scale(.15); background: radial-gradient(circle, rgba(124,92,255,.4), rgba(34,211,238,.22) 40%, transparent 72%); }
+    40%  { opacity: .95; }
+    100% { opacity: 0; transform: scale(2.4); background: radial-gradient(circle, rgba(124,92,255,.32), rgba(244,114,182,.2) 45%, transparent 72%); }
+  }
+  #imgZoom { position: fixed; inset: 0; z-index: 35; display: none;
+    align-items: center; justify-content: center;
+    background: rgba(5, 7, 15, .82); backdrop-filter: blur(10px); }
+  #imgZoom.show { display: flex; animation: imgZoomIn .45s cubic-bezier(.2, .7, .25, 1) both; }
+  #imgZoom img { max-width: 92vw; max-height: 92vh; border-radius: 18px;
+    border: 1px solid rgba(255, 255, 255, .16);
+    box-shadow: 0 50px 140px -30px rgba(0, 0, 0, .95); }
+  @keyframes imgZoomIn { from { opacity: 0; transform: scale(.55); } to { opacity: 1; transform: scale(1); } }
+
+  /* ---------- Chrome UI ---------- */
+  #pageNum {
+    position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); z-index: 40;
+    font-family: "Space Grotesk", "Pretendard Variable", sans-serif;
+    font-size: 13px; font-weight: 700; letter-spacing: .1em; color: #cdd3ff;
+    background: rgba(8, 11, 24, .65); border: 1px solid var(--border);
+    padding: 7px 18px; border-radius: 999px; backdrop-filter: blur(10px);
+  }
+  .nav-btn {
+    position: fixed; top: 50%; transform: translateY(-50%); z-index: 40;
+    width: 48px; height: 48px; border-radius: 50%;
+    background: rgba(255, 255, 255, .05); border: 1px solid var(--border);
+    color: var(--text); font-size: 22px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(8px); transition: background .25s, transform .25s, border-color .25s;
+  }
+  .nav-btn:hover { background: rgba(124, 92, 255, .25); border-color: rgba(124, 92, 255, .5); transform: translateY(-50%) scale(1.08); }
+  .nav-btn.prev { left: 18px; } .nav-btn.next { right: 18px; }
+
+  #zoomWrap {
+    position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 40;
+    display: flex; align-items: center; gap: 8px;
+    background: rgba(8, 11, 24, .65); border: 1px solid var(--border); border-radius: 999px;
+    padding: 6px 14px; backdrop-filter: blur(10px);
+  }
+  #zoomWrap button { background: rgba(255, 255, 255, .1); border: none; color: var(--text);
+    width: 26px; height: 26px; border-radius: 50%; cursor: pointer; font-size: 14px; transition: background .2s; }
+  #zoomWrap button:hover { background: rgba(124, 92, 255, .35); }
+  #zoomVal { font-size: 13px; min-width: 52px; text-align: center; font-weight: 700; color: var(--acc2);
+    font-family: "Space Grotesk", sans-serif; }
+
+  #camBox {
+    position: fixed; right: 18px; bottom: 64px; z-index: 50;
+    border: 1px solid var(--border); border-radius: 16px; overflow: hidden;
+    background: #000; box-shadow: 0 10px 30px rgba(0, 0, 0, .5);
+    transform: scaleX(-1); transition: opacity .25s;
+  }
+  #camBox.hidden { opacity: 0; pointer-events: none; }
+  #camToggle {
+    position: fixed; right: 18px; bottom: 18px; z-index: 50;
+    background: rgba(8, 11, 24, .65); border: 1px solid var(--border); color: var(--muted);
+    font-size: 12px; font-weight: 700; padding: 7px 14px; border-radius: 999px;
+    cursor: pointer; backdrop-filter: blur(10px); transition: color .2s, background .2s;
+  }
+  #camToggle:hover { color: var(--text); background: rgba(124, 92, 255, .3); }
+  #video, #canvas { display: block; width: 340px; height: 255px; object-fit: cover; }
+  #video { position: absolute; inset: 0; }
+  #canvas { position: relative; }
+  #camBadge { position: absolute; left: 8px; top: 8px; font-size: 11px; font-weight: 700;
+    color: #0b1020; background: var(--green); padding: 3px 9px; border-radius: 999px; transform: scaleX(-1); }
+
+  #hud {
+    position: fixed; left: 18px; bottom: 18px; z-index: 50;
+    background: rgba(8, 11, 24, .65); border: 1px solid var(--border); border-radius: 16px;
+    padding: 14px 18px; backdrop-filter: blur(10px); min-width: 200px;
+  }
+  #hud .label { font-size: 11px; letter-spacing: .14em; color: var(--muted); text-transform: uppercase; margin-bottom: 6px;
+    font-family: "Space Grotesk", sans-serif; }
+  #gestureText { font-size: 17px; font-weight: 800; color: var(--acc2); }
+  #gestureDetail { font-size: 12px; color: var(--muted); margin-top: 4px; line-height: 1.5; }
+
+  #toast {
+    position: fixed; left: 50%; top: 22%; transform: translate(-50%, 0); z-index: 60;
+    background: rgba(10, 13, 30, .92); border: 1px solid rgba(124, 92, 255, .6); color: #fff;
+    font-size: 21px; font-weight: 800; padding: 14px 30px; border-radius: 14px;
+    opacity: 0; transition: opacity .25s; pointer-events: none;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, .6); font-family: "Pretendard Variable", sans-serif;
+  }
+  #toast.show { opacity: 1; }
+
+  #startOverlay {
+    position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center;
+    background: radial-gradient(800px 500px at 20% 0%, rgba(124, 92, 255, .22), transparent 60%),
+                radial-gradient(700px 500px at 110% 100%, rgba(34, 211, 238, .16), transparent 55%),
+                rgba(5, 7, 15, .94);
+    backdrop-filter: blur(12px); text-align: center; padding: 24px;
+  }
+  #startOverlay .box { max-width: 480px; }
+  #startOverlay h2 { margin-bottom: 14px; }
+  #startOverlay p { color: var(--muted); font-size: 15px; line-height: 1.75; margin-bottom: 26px; }
+  #startBtn {
+    font-size: 17px; font-weight: 800; color: #fff; border: none; cursor: pointer;
+    padding: 15px 44px; border-radius: 999px;
+    background: linear-gradient(135deg, #7c5cff, #22d3ee);
+    box-shadow: 0 10px 34px rgba(124, 92, 255, .5); transition: transform .15s, box-shadow .15s;
+  }
+  #startBtn:hover { transform: translateY(-2px); box-shadow: 0 16px 44px rgba(124, 92, 255, .65); }
+  #startBtn:disabled { opacity: .5; cursor: wait; }
+  .hint { margin-top: 20px; font-size: 12px; color: #67729b; line-height: 1.7; }
+
+
+  .shots { display: grid; gap: 12px; align-items: center; }
+  figure.shot { margin: 0; border-radius: 14px; overflow: hidden;
+    border: 1px solid var(--border); background: rgba(0, 0, 0, .45);
+    box-shadow: 0 24px 60px -30px rgba(0, 0, 0, .9); }
+  figure.shot img { display: block; width: 100%; height: 100%;
+    object-fit: contain; max-height: 56vh; }
+  figure.shot figcaption { padding: 8px 12px; font-size: 11px; color: var(--muted);
+    border-top: 1px solid rgba(255, 255, 255, .05); }
+  .card figure.shot { box-shadow: none; border-radius: 12px; margin-bottom: 16px; }
+  .card figure.shot img { max-height: 22vh; }
+  @media (max-width: 900px) {
+    .split { grid-template-columns: 1fr; gap: 22px; }
+    #video, #canvas { width: 200px; height: 150px; }
+    #hud { min-width: 0; padding: 10px 12px; }
+    .ghost { font-size: 46vw; }
+  }
+
+</style>
+</head>
+<body>
+
+  <div class="bgfx"><i class="blob b1"></i><i class="blob b2"></i><i class="blob b3"></i><i class="grain"></i></div>
+  <div id="progress"><span id="progressFill"></span></div>
+  <div id="magic"></div>
+  <div id="imgZoom"></div>
+
+  <div id="stage">
+    <div id="panner">
+      <div id="slideContainer">
+<section class="slide slide-1">
+  <div class="inner">
+    <span class="kicker">Company Briefing</span>
+    <h1>VAX_AX<br /><span class="grad">시스템 브리핑</span></h1>
+    <p class="sub">업무 · 근태 · 보고 · 평가를 하나로 잇는 AI 업무 자동화 시스템<br/>검지 스와이프로 넘기고, 손바닥으로 사진을 확대해 보세요</p>
+  </div>
+</section>
+
+<section class="slide">
+  <div class="inner">
+    <h2>목차</h2>
+    <div class="grid" style="grid-template-columns:repeat(2,1fr)">
+      <div class="card"><div class="icon">01</div><h3>왜 AX를 도입했나</h3><p>기록이 없다면, 반복할 수 없다</p></div>
+      <div class="card"><div class="icon">02</div><h3>시스템 구조</h3><p>구글 드라이브 · 노션 · 슬랙 · 웹 ERP</p></div>
+      <div class="card"><div class="icon">03</div><h3>핵심 특징</h3><p>자동 · 공평 · 연결</p></div>
+      <div class="card"><div class="icon">04</div><h3>뭘 해야 하나</h3><p>출퇴근부터 점수·평가까지 사용 가이드</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="slide">
+  <div class="inner">
+    <div class="sec-num">01 · WHY</div>
+    <h2>일은 했지만, <span class="grad">남는 게 없었다</span></h2>
+    <div class="split">
+      <p class="lead">회사 업무 기록을 남기려면 누군가 꾸준히 관리해야 한다. 그러나 기록은 소실되고, 기록되지 않은 일도 많았다.</p>
+      <ul class="bullets">
+        <li>회사 업무 기록은 누군가 꾸준히 관리해야 남는다</li>
+        <li>기록이 소실된 것도 많고, 애초에 기록되지 않은 것도 많다</li>
+        <li>기록이 없어 기술과 기억이 후임에게 전수되지 못함</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="slide">
+  <div class="inner">
+    <div class="sec-num">01 · WHY</div>
+    <h2>기록이 남으면, <span class="grad">반복하지 않는다</span></h2>
+    <ul class="bullets">
+      <li>기록이 남으면 실수를 반복하지 않을 수 있다</li>
+      <li>업무 · 결재 · 미팅 등 액션에 대한 기록을 남긴다</li>
+      <li>AI가 기록을 학습해, 결과적으로 조언해준다</li>
+    </ul>
+  </div>
+</section>
+
+<section class="slide">
+  <div class="inner">
+    <div class="sec-num">02 · STRUCTURE</div>
+    <h2>4가지 도구가 <span class="grad">하나로 연결</span></h2>
+    <div class="grid" style="grid-template-columns:repeat(4,1fr)">
+      <div class="card"><div class="icon">G</div><h3>구글 드라이브</h3><p>스토리지</p></div>
+      <div class="card"><div class="icon">N</div><h3>노션</h3><p>DB / 문서</p></div>
+      <div class="card"><div class="icon">S</div><h3>슬랙</h3><p>메신저 입출력</p></div>
+      <div class="card"><div class="icon">E</div><h3>웹 ERP</h3><p>GUI 입출력</p></div>
+    </div>
+    <ul class="bullets" style="margin-top:20px">
+      <li>Claude + opencode go + OpenRouter + 각종 파싱 시스템 라이브러리 적용</li>
+      <li>24시간 켜져 있는 AWS 서버 한 대가 네 도구를 이어준다</li>
+      <li>회사 전용 통로(Tailscale)로만 접근 가능, 매뉴얼 같은 공개 페이지만 공개</li>
+      <li>PDF · 한글 · 엑셀 · 이미지까지 10가지 방식으로 문서를 읽고, 스캔본은 AI가 직접 본다</li>
+    </ul>
+  </div>
+</section>
+
+<section class="slide">
+  <div class="inner">
+    <div class="sec-num">03 · FEATURES</div>
+    <h2>신경 쓰지 않아도 <span class="grad">AI가 처리</span></h2>
+    <ul class="bullets">
+      <li>슬랙에서 ✅로 업무를 끝내거나 /컨택으로 미팅을 남기면, 그날 일간보고에 1분 안에 기록</li>
+      <li>구글 드라이브 99_INBOX에 파일만 넣으면 서버가 읽고 분류해 검수판에 카드로 등록</li>
+      <li>출퇴근 기록으로 대체휴무 자동 계산, 승인된 물품구매는 장비·라이선스 대장에 자동 등록</li>
+    </ul>
+  </div>
+</section>
+
+<section class="slide">
+  <div class="inner">
+    <div class="sec-num">03 · FEATURES</div>
+    <h2>모두 <span class="grad">공평하게</span> 시스템 안에서</h2>
+    <ul class="bullets">
+      <li>같은 규칙이 전원에게 동일 적용 — 눈에 띄는 사람이 아니라 기록이 남은 사람이 점수를 받는다</li>
+      <li>밖에서 한 일도 기록하면 일이 된다. 컨택을 남기지 않으면 가장 바쁜 사람이 기록상 가장 한가해 보인다</li>
+      <li>점수는 액션마다 자동으로 쌓인다 — 인상이나 기억이 아니라 남은 기록으로 평가</li>
+      <li>억울한 일을 막는 통로도 있다: GPS 밖 출퇴근, 놓친 기록, 잘못 들어간 건은 요청으로 올리고 상급자가 확인</li>
+      <li>평가에 쓰이는 기록은 서버 안에만 두고 노션으로 내보내지 않는다</li>
+    </ul>
+  </div>
+</section>
+
+<section class="slide">
+  <div class="inner">
+    <div class="sec-num">03 · FEATURES</div>
+    <h2>다양한 도구가 <span class="grad">하나의 연결</span></h2>
+    <ul class="bullets">
+      <li>어디에 넣든 한 곳에 쌓인다 — 슬랙 출근, 웹 ERP 휴가, 노션 프로젝트가 서로 연결</li>
+      <li>일정은 구글 캘린더와 함께 움직인다 — 휴가가 확정되면 그 날짜엔 업무가 잡히지 않는다</li>
+      <li>구성원 명부 하나가 모든 화면의 기준 — 명부에 들어오면 근태·보고·업무·점수에 자동 반영</li>
+      <li>슬랙 봇에게 물으면 흩어진 파일 대신 정본을 찾아 답하고, 어느 문서에서 나온 말인지 함께 알려준다</li>
+      <li>같은 내용을 두 번 입력할 일이 없다</li>
+    </ul>
+  </div>
+</section>
+
+<section class="slide">
+  <div class="inner">
+    <div class="sec-num">04 · GUIDE</div>
+    <div class="split">
+      <div>
+        <h2>출퇴근 <span class="grad">찍기</span></h2>
+        <ul class="bullets">
+        <li>GPS 기반 출근 인증 — 회사 근처에 오면 출근 버튼을 눌러 찍는다</li>
+        <li>GPS 범위를 벗어나면 요청으로 이어지고, 상급자가 승인해야 등록된다</li>
+        <li>못 찍은 날은 요청으로 특정일 출퇴근 기록을 새로 작성 (상급자 승인)</li>
+        <li>출퇴근 기록은 자동으로 개인 인사 평가 점수가 된다</li>
+        <li>19:30 이후 야근부터 계산돼 대체휴무가 자동 생성</li>
+      </ul>
+      </div>
+      <div class="shots"><figure class="shot"><img src="img/attendance.png" alt="출퇴근 화면" loading="lazy" /><figcaption>출퇴근 화면</figcaption></figure></div>
+    </div>
+  </div>
+</section>
+
+<section class="slide">
+  <div class="inner">
+    <div class="sec-num">04 · GUIDE</div>
+    <div class="split">
+      <div>
+        <h2>휴가 <span class="grad">신청하기</span></h2>
+        <ul class="bullets">
+        <li>휴가는 구글 캘린더와 연동되어 작동한다</li>
+        <li>대체휴무는 0.5일부터 자동으로 보유 휴무에 등록·증가</li>
+        <li>휴가 등록은 상급자 승인 필요, 업무·캘린더 일정이 포함된 날은 사용 제한</li>
+        <li>휴가를 쓰면 업무 요청·캘린더 등록이 자동으로 불가능해진다</li>
+      </ul>
+      </div>
+      <div class="shots"><figure class="shot"><img src="img/leave.png" alt="휴가 신청 화면" loading="lazy" /><figcaption>휴가 신청 화면</figcaption></figure></div>
+    </div>
+  </div>
+</section>
+
+<section class="slide">
+  <div class="inner">
+    <div class="sec-num">04 · GUIDE</div>
+    <div class="split">
+      <div>
+        <h2>캘린더 · <span class="grad">일정 등록</span></h2>
+        <ul class="bullets">
+        <li>일정은 참여자와 내용을 추가해 등록 — 구글 캘린더와 함께 동작</li>
+        <li>일정에 포함되면 자동으로 일간보고에도 등록</li>
+        <li>캘린더 탭에서 수정 가능 — 업무와 연결되니 반드시 인원을 포함</li>
+      </ul>
+      </div>
+      <div class="shots" style="grid-template-columns:repeat(2,1fr)"><figure class="shot"><img src="img/calendar-1.png" alt="일정 등록 화면 1" loading="lazy" /><figcaption>일정 등록 화면 1</figcaption></figure><figure class="shot"><img src="img/calendar-2.png" alt="일정 등록 화면 2" loading="lazy" /><figcaption>일정 등록 화면 2</figcaption></figure></div>
+    </div>
+  </div>
+</section>
+
+<section class="slide">
+  <div class="inner">
+    <div class="sec-num">04 · GUIDE</div>
+    <h2>결재 · <span class="grad">물품구매 요청</span></h2>
+    <div class="grid" style="grid-template-columns:repeat(2,1fr)">
+      <div class="card">
+        <div class="shots"><figure class="shot"><img src="img/approval.png" alt="결재 화면" loading="lazy" /><figcaption>결재 화면</figcaption></figure></div>
+        <h3>결재하기</h3>
+        <ul class="bullets">
+          <li>dooray처럼 결재를 사용하면 된다</li>
+          <li>결재 자료는 CSV·PDF 저장 가능</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="shots"><figure class="shot"><img src="img/purchase.png" alt="물품구매 요청 화면" loading="lazy" /><figcaption>물품구매 요청 화면</figcaption></figure></div>
+        <h3>물품구매 요청</h3>
+        <ul class="bullets">
+          <li>장비 / 구독 / 소프트웨어 구매 요청 가능</li>
+          <li>승인되면 장비·자산·라이선스가 자연스럽게 등록</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="slide">
+  <div class="inner">
+    <div class="sec-num">04 · GUIDE</div>
+    <div class="split">
+      <div>
+        <h2>일간 <span class="grad">보고</span></h2>
+        <ul class="bullets">
+        <li>일간보고 · 작업 내용 · 미팅 · 활동 내용이 보고로 저장</li>
+        <li>내가 직접 쓰는 부분 외에는 AI가 뒷단에서 정리해 넣는다</li>
+      </ul>
+      </div>
+      <div class="shots"><figure class="shot"><img src="img/daily-report.png" alt="일간보고 화면" loading="lazy" /><figcaption>일간보고 화면</figcaption></figure></div>
+    </div>
+  </div>
+</section>
+
+<section class="slide">
+  <div class="inner">
+    <div class="sec-num">04 · GUIDE</div>
+    <div class="split">
+      <div>
+        <h2>업무 <span class="grad">진행</span></h2>
+        <ul class="bullets">
+        <li>담당자를 골라 일정을 주고 업무를 요청할 수 있다</li>
+        <li>요청 확인을 해야 한다 — 진행·확인 모두 체크하지 않으면 감정을 당한다</li>
+        <li>상태별·요일별로 조회, 팀장은 업무가 몰린 사람을 파악 가능</li>
+        <li>요청을 처리하면 자동으로 일간 기록에 반영된다</li>
+      </ul>
+      </div>
+      <div class="shots" style="grid-template-columns:repeat(2,1fr)"><figure class="shot"><img src="img/task-1.png" alt="업무 요청 화면 1" loading="lazy" /><figcaption>업무 요청 화면 1</figcaption></figure><figure class="shot"><img src="img/task-2.png" alt="업무 요청 화면 2" loading="lazy" /><figcaption>업무 요청 화면 2</figcaption></figure></div>
+    </div>
+  </div>
+</section>
+
+<section class="slide">
+  <div class="inner">
+    <div class="sec-num">04 · GUIDE</div>
+    <div class="split">
+      <div>
+        <h2>컨택 <span class="grad">등록</span></h2>
+        <ul class="bullets">
+        <li>미팅이 발생하면 컨택 기록을 남긴다</li>
+        <li>컨택 기록으로 거래처를 기록하고 각종 미팅을 업무화</li>
+        <li>컨택 기록도 업무로 배정되고 점수화되니 반드시 기록</li>
+      </ul>
+      </div>
+      <div class="shots"><figure class="shot"><img src="img/contact.png" alt="컨택 등록 화면" loading="lazy" /><figcaption>컨택 등록 화면</figcaption></figure></div>
+    </div>
+  </div>
+</section>
+
+<section class="slide">
+  <div class="inner">
+    <div class="sec-num">04 · GUIDE</div>
+    <div class="split">
+      <div>
+        <h2>용역 <span class="grad">찾기</span></h2>
+        <ul class="bullets">
+        <li>기준 · 키워드 · 목표에 맞는 공고를 지속적으로 탐색·추천</li>
+        <li>수익률 · 영업 여부 · 가점을 판단해 최적의 용역만 수행</li>
+        <li>수익이 남지 않는 용역 수행을 최소화</li>
+        <li>“도전”을 선택하면 자동으로 PPT 초안까지 생성</li>
+        <li>공고문·제안요청서 기반으로 PPT 전문이 자동 제작, 각 기회자가 발전시켜 나간다</li>
+      </ul>
+      </div>
+      <div class="shots" style="grid-template-columns:repeat(2,1fr)"><figure class="shot"><img src="img/bid-1.png" alt="용역 탐색 1" loading="lazy" /><figcaption>용역 탐색 1</figcaption></figure><figure class="shot"><img src="img/bid-2.png" alt="용역 탐색 2" loading="lazy" /><figcaption>용역 탐색 2</figcaption></figure><figure class="shot"><img src="img/bid-3.png" alt="용역 탐색 3" loading="lazy" /><figcaption>용역 탐색 3</figcaption></figure><figure class="shot"><img src="img/bid-4.png" alt="용역 탐색 4" loading="lazy" /><figcaption>용역 탐색 4</figcaption></figure></div>
+    </div>
+  </div>
+</section>
+
+<section class="slide">
+  <div class="inner">
+    <div class="sec-num">04 · GUIDE</div>
+    <div class="split">
+      <div>
+        <h2>입찰 <span class="grad">결과</span></h2>
+        <ul class="bullets">
+        <li>참여 가능했던 스코프 내 용역 결과를 아카이브</li>
+        <li>실제 수행·완료한 것도 여기로 모인다</li>
+        <li>누가 가져갔는지, 얻은 교훈을 기록하며 자기개선</li>
+      </ul>
+      </div>
+      <div class="shots"><figure class="shot"><img src="img/tender-result.png" alt="입찰 결과 아카이브" loading="lazy" /><figcaption>입찰 결과 아카이브</figcaption></figure></div>
+    </div>
+  </div>
+</section>
+
+<section class="slide">
+  <div class="inner">
+    <div class="sec-num">04 · GUIDE</div>
+    <h2>구성원 · <span class="grad">장비 시스템</span></h2>
+    <div class="grid" style="grid-template-columns:repeat(2,1fr)">
+      <div class="card">
+        <div class="shots"><figure class="shot"><img src="img/members.png" alt="구성원 화면" loading="lazy" /><figcaption>구성원 화면</figcaption></figure></div>
+        <h3>구성원 보기</h3>
+        <ul class="bullets">
+          <li>실직원 = 현재 출근 중인 직원</li>
+          <li>구성원 목록이 각 시스템과 연동되어 동작</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="shots" style="grid-template-columns:repeat(2,1fr)"><figure class="shot"><img src="img/equipment-1.png" alt="장비 목록 1" loading="lazy" /><figcaption>장비 목록 1</figcaption></figure><figure class="shot"><img src="img/equipment-2.png" alt="장비 목록 2" loading="lazy" /><figcaption>장비 목록 2</figcaption></figure></div>
+        <h3>장비 시스템</h3>
+        <ul class="bullets">
+          <li>장비 추가·변경 가능, 기록된 장비 전체 목록 포함</li>
+          <li>4개의 마스터본이 서로 달라 엉망 — 전체 점검과 새 장비 대장 필요</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="slide">
+  <div class="inner">
+    <div class="sec-num">04 · GUIDE</div>
+    <div class="split">
+      <div>
+        <h2>점수와 <span class="grad">평가</span></h2>
+        <ul class="bullets">
+        <li>ERP 사용만으로 자연스럽게 점수가 쌓인다</li>
+        <li>출퇴근 · 업무 체크 · 업무 수행 · wiki 참여 등 액션에 보상/패널티 존재</li>
+        <li>월말 팀장 등급 평가(팀장은 대표가)로 월 점수 확정</li>
+        <li>점수를 바탕으로 인사가 진행</li>
+      </ul>
+      </div>
+      <div class="shots" style="grid-template-columns:repeat(2,1fr)"><figure class="shot"><img src="img/score-1.png" alt="점수 화면 1" loading="lazy" /><figcaption>점수 화면 1</figcaption></figure><figure class="shot"><img src="img/score-2.png" alt="점수 화면 2" loading="lazy" /><figcaption>점수 화면 2</figcaption></figure></div>
+    </div>
+  </div>
+</section>
+
+<section class="slide">
+  <div class="inner">
+    <div class="sec-num">04 · GUIDE</div>
+    <h2>오류제보 · <span class="grad">기타 안내</span></h2>
+    <div class="grid" style="grid-template-columns:repeat(2,1fr)">
+      <div class="card">
+        <div class="shots"><figure class="shot"><img src="img/bug.png" alt="오류제보 화면" loading="lazy" /><figcaption>오류제보 화면</figcaption></figure></div>
+        <h3>오류제보</h3>
+        <ul class="bullets">
+          <li>실행하며 발견한 문제를 제보한다</li>
+          <li>어떤 동작에서 어떤 결과가 나왔는지 재현 시나리오를 주면 최고</li>
+          <li>오류 화면 이미지는 꼭 첨부</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="shots" style="grid-template-columns:repeat(2,1fr)"><figure class="shot"><img src="img/etc-1.png" alt="기타 안내 1" loading="lazy" /><figcaption>기타 안내 1</figcaption></figure><figure class="shot"><img src="img/etc-2.png" alt="기타 안내 2" loading="lazy" /><figcaption>기타 안내 2</figcaption></figure></div>
+        <h3>기타</h3>
+        <ul class="bullets">
+          <li>복리후생 · 업무 매뉴얼 수정 중 — 흐린 눈으로 보기</li>
+          <li>1인이 제작해 QA/QC 부족 — QAQC 탭에 오류를 모두 등록</li>
+          <li>오류 외에도 필요한 시스템이 있으면 말하면 개발해 준다</li>
+          <li>순서대로 진행되니 자기 업무 자동화부터 말하는 게 이득</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="slide slide-1">
+  <div class="inner">
+    <span class="kicker">That's All</span>
+    <h1>감사합니다</h1>
+  </div>
+</section>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- UI chrome -->
+  <div id="zoomWrap">
+    <button id="zoomOut">−</button>
+    <span id="zoomVal">100%</span>
+    <button id="zoomIn">+</button>
+  </div>
+  <button class="nav-btn prev" id="btnPrev">‹</button>
+  <button class="nav-btn next" id="btnNext">›</button>
+  <div id="pageNum">1 / 5</div>
+
+  <div id="camBox">
+    <video id="video" playsinline></video>
+    <canvas id="canvas" width="640" height="480"></canvas>
+    <div id="camBadge">LIVE</div>
+  </div>
+  <button id="camToggle">미리보기 보기</button>
+
+  <div id="hud">
+    <div class="label">Detected Gesture</div>
+    <div id="gestureText">대기 중…</div>
+    <div id="gestureDetail">카메라를 켜면 손동작이 표시됩니다.</div>
+  </div>
+
+  <div id="toast"></div>
+
+  <div id="startOverlay">
+    <div class="box">
+      <h2>카메라 제스처 PPT</h2>
+      <p>발표할 준비가 되면 카메라를 켜세요.<br/>권한을 허용하면 바로 동작 인식이 시작됩니다.</p>
+      <button id="startBtn">카메라 시작</button>
+      <p class="hint">카메라는 https:// 또는 localhost 에서만 사용할 수 있어요.<br/>키보드 ← → , 화면 버튼으로도 조작 가능합니다.</p>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/face_detection.js"></script>
+
+  <script>
+    /* ===================== Slide control ===================== */
+    const container = document.getElementById('slideContainer');
+    const panner = document.getElementById('panner');
+    const slides = document.querySelectorAll('.slide');
+    const total = slides.length;
+    container.style.width = (total * 100) + 'vw';
+    let idx = 0;
+    let prevIdx = 0;
+    let zoom = 1, MINZ = 0.5, MAXZ = 3;
+
+    const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+
+    function render() {
+      const outgoing = prevIdx;
+      panner.style.transform = `translateX(${-idx * 100}vw)`;
+      container.style.transform = `scale(${zoom})`;
+      document.getElementById('pageNum').textContent = `${idx + 1} / ${total}`;
+      document.getElementById('zoomVal').textContent = `${Math.round(zoom * 100)}%`;
+      document.getElementById('progressFill').style.width = `${((idx + 1) / total) * 100}%`;
+      slides.forEach((s, i) => {
+        s.classList.toggle('fx-' + ((i % 8) + 1), true);
+        if (i === idx) { s.classList.remove('out'); s.classList.add('in'); }
+        else if (i === outgoing) { s.classList.remove('in'); s.classList.add('out'); }
+        else { s.classList.remove('in', 'out'); }
+      });
+      prevIdx = idx;
+      const magic = document.getElementById('magic');
+      magic.classList.remove('go');
+      void magic.offsetWidth;
+      magic.classList.add('go');
+    }
+    const nextSlide = () => { if (idx < total - 1) { idx++; render(); } };
+    const prevSlide = () => { if (idx > 0) { idx--; render(); } };
+    const setZoom = (z) => { zoom = clamp(z, MINZ, MAXZ); render(); };
+
+    document.getElementById('btnNext').addEventListener('click', nextSlide);
+    document.getElementById('btnPrev').addEventListener('click', prevSlide);
+    document.getElementById('zoomIn').addEventListener('click', () => setZoom(zoom + 0.2));
+    document.getElementById('zoomOut').addEventListener('click', () => setZoom(zoom - 0.2));
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight') nextSlide();
+      else if (e.key === 'ArrowLeft') prevSlide();
+      else if (e.key === '+') setZoom(zoom + 0.2);
+      else if (e.key === '-') setZoom(zoom - 0.2);
+    });
+    slides.forEach((s, i) => {
+      const g = document.createElement('span');
+      g.className = 'ghost';
+      g.textContent = String(i + 1).padStart(2, '0');
+      s.appendChild(g);
+      const sn = s.querySelector('.sec-num');
+      if (sn) {
+        const m = sn.textContent.match(/0([1-9])/);
+        if (m) s.classList.add('ac-0' + m[1]);
+      }
+    });
+    render();
+
+    /* ===================== Toast / HUD ===================== */
+    const toastEl = document.getElementById('toast');
+    let toastTimer = null;
+    function toast(msg) {
+      toastEl.textContent = msg;
+      toastEl.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toastEl.classList.remove('show'), 900);
+    }
+    function setHud(main, detail) {
+      document.getElementById('gestureText').textContent = main;
+      document.getElementById('gestureDetail').textContent = detail || '';
+    }
+
+    /* ===================== Gesture recognition: index swipe + palm image zoom ===================== */
+    const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+
+    function countFingers(lm) {
+      const tips = [8, 12, 16, 20], pips = [6, 10, 14, 18];
+      let four = 0;
+      for (let i = 0; i < 4; i++) if (lm[tips[i]].y < lm[pips[i]].y) four++;
+      const palm = dist(lm[0], lm[9]);
+      const thumb = dist(lm[4], lm[5]) > palm * 0.55;
+      return { four, thumb };
+    }
+
+    // 손바닥: 다섯 손가락 모두 펼침
+    function isPalm(lm) {
+      const f = countFingers(lm);
+      return f.four === 4 && f.thumb;
+    }
+
+    // 검지가 펼쳐지고 나머지 3손가락(중지·약지·새끼)이 접혀 있으면 인식. 엄지는 신경쓰지 않는다.
+    function isIndexPointing(lm) {
+      const indexUp = lm[8].y < lm[6].y;
+      const middleFolded = lm[12].y > lm[10].y;
+      const ringFolded = lm[16].y > lm[14].y;
+      const pinkyFolded = lm[20].y > lm[18].y;
+      return indexUp && middleFolded && ringFolded && pinkyFolded;
+    }
+
+    /* 검지 스와이프 추적 (검지 끝점 기준) */
+    let hist = [], lastSwipeAt = 0;
+    function trackSwipe(x, now) {
+      hist.push({ t: now, x });
+      while (hist.length && now - hist[0].t > 350) hist.shift();
+      if (hist.length < 4) return null;
+      const first = hist[0], last = hist[hist.length - 1];
+      const dt = last.t - first.t;
+      if (dt < 60) return null;
+      const dx = last.x - first.x;
+      if (Math.abs(dx) > 0.2 && now - lastSwipeAt > 1200) {
+        lastSwipeAt = now;
+        hist = [];
+        return dx > 0 ? 'next' : 'prev';
+      }
+      return null;
+    }
+
+    /* 손바닥 -> 사진 확대 (이미지가 있는 슬라이드에서만) */
+    let palmZoomOn = false;
+    const zoomBox = document.getElementById('imgZoom');
+    function setPalmZoom(active) {
+      if (active === palmZoomOn) {
+        if (active) setHud('손바닥 · 사진 확대', '손을 내리면 원래대로');
+        return;
+      }
+      palmZoomOn = active;
+      if (active) {
+        const figImg = slides[idx] && slides[idx].querySelector('figure.shot img');
+        if (figImg) {
+          zoomBox.innerHTML = `<img src="${figImg.currentSrc || figImg.src}" alt="사진 확대" />`;
+          zoomBox.classList.add('show');
+          setHud('손바닥 · 사진 확대', '손을 내리면 원래대로');
+        } else {
+          setHud('손바닥', '이 슬라이드에는 확대할 사진이 없습니다');
+        }
+      } else {
+        zoomBox.classList.remove('show');
+        setHud('대기', '손바닥: 사진 확대 · 검지 스와이프: 넘기기');
+      }
+    }
+
+    function handleGesture(lm) {
+      const now = performance.now();
+      if (isPalm(lm)) { setPalmZoom(true); return; }
+      setPalmZoom(false);
+      if (!isIndexPointing(lm)) {
+        hist = [];
+        setHud('대기', '손바닥: 사진 확대 · 검지 스와이프: 넘기기');
+        return;
+      }
+      const sw = trackSwipe(lm[8].x, now);
+      if (sw === 'next') { nextSlide(); toast('다음 슬라이드'); }
+      else if (sw === 'prev') { prevSlide(); toast('이전 슬라이드'); }
+      setHud('검지 스와이프', '좌로 휙 = 다음 / 우로 휙 = 이전');
+    }
+
+
+    /* ===================== MediaPipe ===================== */
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    function drawHand(lm, color) {
+      drawConnectors(ctx, lm, HAND_CONNECTIONS, { color, lineWidth: 2 });
+      drawLandmarks(ctx, lm, { color: '#0b1020', lineWidth: 1, radius: 3 });
+    }
+
+    /* ----- 발표자 손 고정 추적 ----- */
+    // 1) 얼굴 감지로 발표자 위치를 기억 (raw 이미지 좌표)
+    let faceCenter = null;
+    const faceDetection = new FaceDetection({
+      locateFile: (f) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/${f}`
+    });
+    faceDetection.setOptions({ modelSelection: 0, minDetectionConfidence: 0.6 });
+    faceDetection.onResults((res) => {
+      if (res.detections && res.detections.length) {
+        const bb = res.detections[0].boundingBox;
+        faceCenter = { x: bb.originX + bb.width / 2, y: bb.originY + bb.height / 2 };
+      } else {
+        faceCenter = null;
+      }
+    });
+
+    // 2) 처음 잡은 손을 계속 따라가다, 그 손이 사라지면 다시 얼굴 근처 손으로 잠금
+    let prevTargetWrist = null;
+    function pickHand(hands) {
+      if (prevTargetWrist) {
+        let best = -1, bestD = 1e9;
+        for (let i = 0; i < hands.length; i++) {
+          const d = dist(hands[i][0], prevTargetWrist);
+          if (d < bestD) { bestD = d; best = i; }
+        }
+        if (best >= 0 && bestD < 0.4) { prevTargetWrist = hands[best][0]; return hands[best]; }
+        prevTargetWrist = null; // 잠금 대상 손이 사라짐 -> 새로 잠금
+      }
+      if (faceCenter) {
+        let best = -1, bestD = 1e9;
+        for (let i = 0; i < hands.length; i++) {
+          const w = hands[i][0];
+          const d = Math.hypot(w.x - faceCenter.x, w.y - faceCenter.y);
+          if (d < bestD) { bestD = d; best = i; }
+        }
+        if (best >= 0) { prevTargetWrist = hands[best][0]; return hands[best]; }
+      }
+      prevTargetWrist = hands[0][0];
+      return hands[0];
+    }
+
+    function onResults(results) {
+      ctx.save();
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
+      if (results.multiHandLandmarks && results.multiHandLandmarks.length) {
+        results.multiHandLandmarks.forEach((lm, i) => drawHand(lm, i === 0 ? '#22d3ee' : '#f472b6'));
+        handleGesture(pickHand(results.multiHandLandmarks));
+      } else {
+        prevTargetWrist = null;
+        palmZoomOn = false;
+        zoomBox.classList.remove('show');
+        setHud('대기', '손바닥: 사진 확대 · 검지 스와이프: 넘기기');
+      }
+      ctx.restore();
+    }
+
+    const hands = new Hands({
+      locateFile: (f) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`
+    });
+    hands.setOptions({
+      maxNumHands: 2, modelComplexity: 1,
+      minDetectionConfidence: 0.85, minTrackingConfidence: 0.5
+    });
+    hands.onResults(onResults);
+
+    let camera = null;
+    const camBox = document.getElementById('camBox');
+    camBox.classList.add('hidden');
+    document.getElementById('camToggle').addEventListener('click', () => {
+      camBox.classList.toggle('hidden');
+      document.getElementById('camToggle').textContent =
+        camBox.classList.contains('hidden') ? '미리보기 보기' : '미리보기 숨기기';
+    });
+    document.getElementById('startBtn').addEventListener('click', async () => {
+      const btn = document.getElementById('startBtn');
+      btn.disabled = true;
+      btn.textContent = '카메라 시작 중…';
+      try {
+        camera = new Camera(video, {
+          onFrame: async () => {
+            await Promise.all([hands.send({ image: video }), faceDetection.send({ image: video })]);
+          },
+          width: 640, height: 480
+        });
+        await camera.start();
+        document.getElementById('startOverlay').style.display = 'none';
+        setHud('대기', '검지 하나만 펴서 좌/우로 휙');
+      } catch (err) {
+        btn.disabled = false;
+        btn.textContent = '카메라 시작';
+        setHud('카메라 오류', err.message);
+      }
+    });
+  </script>
+</body>
+</html>
