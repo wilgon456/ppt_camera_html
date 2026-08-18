@@ -852,18 +852,19 @@
     }
 
     /* 검지 스와이프 추적 (검지 끝점 기준) */
-    let hist = [], lastSwipeAt = 0;
+    let lastSwipeAt = 0;
+    let swipeAnchor = null;
+    // 스와이프는 검지를 계속 펴고 이동한 구간에서 검지 끝점 이동량을 누적해 판정한다.
     function trackSwipe(x, now) {
-      hist.push({ t: now, x });
-      while (hist.length && now - hist[0].t > 350) hist.shift();
-      if (hist.length < 4) return null;
-      const first = hist[0], last = hist[hist.length - 1];
-      const dt = last.t - first.t;
-      if (dt < 60) return null;
-      const dx = last.x - first.x;
-      if (Math.abs(dx) > 0.2 && now - lastSwipeAt > 1200) {
+      if (!swipeAnchor || now - swipeAnchor.t > 600) {
+        swipeAnchor = { x, t: now };
+        return null;
+      }
+      const dx = x - swipeAnchor.x;
+      const dt = now - swipeAnchor.t;
+      if (dt > 70 && Math.abs(dx) > 0.16 && now - lastSwipeAt > 1200) {
         lastSwipeAt = now;
-        hist = [];
+        swipeAnchor = null;
         return dx > 0 ? 'next' : 'prev';
       }
       return null;
@@ -895,10 +896,10 @@
 
     function handleGesture(lm) {
       const now = performance.now();
-      if (isPalm(lm)) { setPalmZoom(true); return; }
+      if (isPalm(lm)) { swipeAnchor = null; setPalmZoom(true); return; }
       setPalmZoom(false);
       if (!isIndexPointing(lm)) {
-        hist = [];
+        swipeAnchor = null;
         setHud('대기', '손바닥: 사진 확대 · 검지 스와이프: 넘기기');
         return;
       }
