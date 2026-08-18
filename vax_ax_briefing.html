@@ -73,7 +73,9 @@
     display: flex; align-items: center; justify-content: center;
     padding: clamp(32px, 7vw, 110px); overflow: hidden;
   }
-  .slide > .inner { position: relative; z-index: 1; width: min(1180px, 94vw); }
+  .slide > .inner { position: relative; z-index: 1; width: min(1180px, 94vw);
+    transform-origin: 50% 50%;
+    transition: transform .35s cubic-bezier(.2, .7, .25, 1); }
   .ghost {
     position: absolute; top: -1%; right: -1%; z-index: 0; pointer-events: none; user-select: none;
     font-family: "Space Grotesk", "Pretendard Variable", sans-serif;
@@ -800,7 +802,10 @@
     function render() {
       const outgoing = prevIdx;
       panner.style.transform = `translateX(${-idx * 100}vw)`;
-      container.style.transform = `scale(${zoom})`;
+      container.style.transform = 'scale(1)';
+      const prevInner = slides[outgoing] && slides[outgoing].querySelector('.inner');
+      const curInner = slides[idx] && slides[idx].querySelector('.inner');
+      if (prevInner && prevInner !== curInner) prevInner.style.transform = 'scale(1)';
       document.getElementById('pageNum').textContent = `${idx + 1} / ${total}`;
       document.getElementById('zoomVal').textContent = `${Math.round(zoom * 100)}%`;
       document.getElementById('progressFill').style.width = `${((idx + 1) / total) * 100}%`;
@@ -811,6 +816,7 @@
         else { s.classList.remove('in', 'out'); }
       });
       prevIdx = idx;
+      if (curInner) curInner.style.transform = `scale(${zoom})`;
       const magic = document.getElementById('magic');
       magic.classList.remove('go');
       void magic.offsetWidth;
