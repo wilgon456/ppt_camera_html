@@ -32,7 +32,7 @@ cd ppt_camera_html
 python3 -m http.server 8000
 ```
 
-**http://localhost:8000**을 열고 카메라 시작 버튼을 누른 뒤 접근 권한을 허용합니다. 카메라는 **localhost 또는 HTTPS**에서 사용할 수 있습니다. MediaPipe 스크립트와 모델은 외부 CDN에서 불러옵니다.
+[http://localhost:8000](http://localhost:8000)을 열고 카메라 시작 버튼을 누른 뒤 접근 권한을 허용합니다. 카메라는 **localhost 또는 HTTPS**에서 사용할 수 있습니다. MediaPipe 스크립트와 모델은 외부 CDN에서 불러옵니다.
 
 ## 조작
 
