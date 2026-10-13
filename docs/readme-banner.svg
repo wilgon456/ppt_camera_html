@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="260" viewBox="0 0 1200 260" role="img" aria-labelledby="title desc">
+  <title id="title">Camera Gesture Slides</title>
+  <desc id="desc">Raise a hand. Move the story.. Project banner.</desc>
+  <rect width="1200" height="260" rx="18" fill="#0f172a"/>
+  <rect x="0" y="0" width="14" height="260" fill="#c084fc"/>
+  <path d="M735 0v260" stroke="#334155" stroke-width="1"/>
+  <text x="58" y="105" fill="#f8fafc" font-family="Arial, Helvetica, sans-serif" font-size="56" font-weight="700">Camera Gesture Slides</text>
+  <text x="60" y="158" fill="#cbd5e1" font-family="Arial, Helvetica, sans-serif" font-size="24">Raise a hand. Move the story.</text>
+  <text x="60" y="216" fill="#c084fc" font-family="Arial, Helvetica, sans-serif" font-size="19">github.com/wilgon456</text>
+  <g fill="none" stroke="#c084fc" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"><rect x="830" y="70" width="175" height="130" rx="12"/><path d="M1005 110l50-27v104l-50-27"/><circle cx="915" cy="135" r="32"/></g>
+</svg>
